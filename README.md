@@ -2,16 +2,14 @@
 
 ## Scraped Job Information
 - Job Title
-- Company name
 - Job Category
 - Employment type
 - Location
-- Date Posted
 - Description
 - Salary
 - Responsibilities / Duties / Tasks / What you'll do
 - Required Skills / Requirements / Qualifications /  Who We Need
-- Experience **
+- Experience 
 
 ## Potential sites to scrape:
 ### JS
@@ -26,3 +24,8 @@
 3. https://hired.com
 4. https://outerjoin.us
 5. https://weworkremotely.com
+
+## Info to plot
+- Distribution of salaries within a location, job & employment type with 50+ jobs
+- Plot years of experience by salary
+- Topic modeling grouped by job types for Description, Responsibilites, & skills
