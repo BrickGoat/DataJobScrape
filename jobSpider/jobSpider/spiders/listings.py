@@ -51,3 +51,14 @@ class ListingSpider(scrapy.Spider):
 
     def parsePage(self):
         pass
+
+    def makeRequest(self, url, tm, cb, next_selector, listing_selector):
+        request = SeleniumRequest(
+            url=url,
+            wait_time=tm,
+            callback=cb,
+            wait_until=EC.visibility_of_all_elements_located(listing_selector),
+        )
+        request.cb_kwargs["next_selector"] = next_selector
+        request.cb_kwargs["listing_selector"] = listing_selector
+        return request
