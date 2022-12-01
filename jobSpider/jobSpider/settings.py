@@ -11,7 +11,7 @@ BOT_NAME = 'jobSpider'
 
 SPIDER_MODULES = ['jobSpider.spiders']
 NEWSPIDER_MODULE = 'jobSpider.spiders'
-
+LOG_LEVEL = 'DEBUG'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'jobSpider (+http://www.yourdomain.com)'
@@ -21,7 +21,7 @@ ROBOTSTXT_OBEY = True
 
 # Chrome driver config
 from shutil import which
-  
+
 SELENIUM_DRIVER_NAME = 'chrome'
 SELENIUM_DRIVER_EXECUTABLE_PATH = which('chromedriver')
 SELENIUM_DRIVER_ARGUMENTS=['--headless']  
