@@ -49,8 +49,47 @@ class ListingSpider(scrapy.Spider):
         ]
         return requests
 
-    def parsePage(self):
-        pass
+    def parsePage(self, response, next_selector, listing_selector):
+        #from scrapy.shell import inspect_response
+        #inspect_response(response, self)
+        containers = []
+        if listing_selector[0] == By.CLASS_NAME:
+            containers = response.xpath(f"//div[@class='{listing_selector[1]}']")
+        elif listing_selector[0] == By.XPATH:
+            containers = response.xpath(listing_selector[1])
+        for container in containers:
+            rel_link = container.xpath("(.//a)/@href").get()
+            end = response.url[8:].index("/") + 8
+            if response.url[:end] not in rel_link:
+                yield ({"url": response.url[:end] + rel_link})
+            else:
+                yield ({"url": rel_link})
+        driver = response.request.meta["driver"] 
+        next = driver.find_element(By.XPATH, "(//a[@class='usajobs-search-pagination__next-page'])[1]")
+        if next is None or not next.is_displayed():
+            return
+        while True:
+            try:
+                button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH,
+                "//a[@class='usajobs-search-pagination__next-page']")
+                )
+            )
+                driver.execute_script("window.scrollTo(100,document.body.scrollHeight/1.25);")
+                time.sleep(2)
+                button.click()
+                url = driver.current_url
+                yield (
+                self.makeRequest(
+                    url, 5, self.parsePage, next_selector, listing_selector
+                )
+            )
+            except Exception as e:
+                print(f"EXCEPTION: {e}")
+                #time.sleep(100)
+                ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+                continue
+            break
 
     def makeRequest(self, url, tm, cb, next_selector, listing_selector):
         request = SeleniumRequest(
