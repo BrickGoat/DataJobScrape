@@ -1,0 +1,103 @@
+import scrapy
+import time
+from selenium.webdriver.common.action_chains import ActionChains
+from scrapy_selenium import SeleniumRequest
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
+
+class ListingSpider(scrapy.Spider):
+    name = "listing"
+
+    def start_requests(self):
+        urls = [
+            "https://www.usajobs.gov/Search/Results?j=2210&j=1550&j=1560&k=data&p=1#",
+            "https://www.progressivedatajobs.org/job-postings/",
+            "https://outerjoin.us/?q=data",
+            "https://weworkremotely.com/categories/remote-back-end-programming-jobs",
+            "https://weworkremotely.com/categories/remote-full-stack-programming-jobs"
+        ]
+        # Selectors for getting next page
+        next = [
+            (By.CLASS_NAME, "usajobs-search-pagination__next-page"),
+            ("rel_link", "/job-postings/?wpv_view_count=627&wpv_paged=2"),
+            (By.XPATH, "(//nav//a)[0]"),
+            (None, None),
+            (None, None),
+        ]
+        # Selectors for divs containing link to job post
+        listing_divs = [
+            (
+                By.XPATH,
+                "//div[@id='usajobs-search-results']/div[@class='usajobs-search-result--core']",
+            ),
+            (By.CLASS_NAME, "grid-job"),
+            (By.CLASS_NAME, "w-full"),
+            (By.XPATH, "/article/ul/li"),
+            (By.XPATH, "/article/ul/li"),
+        ]
+        requests = [
+            self.makeRequest(
+                urls[i],
+                5,
+                self.parsePage,
+                next[i],
+                listing_divs[i],
+            )
+            for i in range(urls)
+        ]
+        return requests
+
+    def parsePage(self, response, next_selector, listing_selector):
+        #from scrapy.shell import inspect_response
+        #inspect_response(response, self)
+        containers = []
+        if listing_selector[0] == By.CLASS_NAME:
+            containers = response.xpath(f"//div[@class='{listing_selector[1]}']")
+        elif listing_selector[0] == By.XPATH:
+            containers = response.xpath(listing_selector[1])
+        for container in containers:
+            rel_link = container.xpath("(.//a)/@href").get()
+            end = response.url[8:].index("/") + 8
+            if response.url[:end] not in rel_link:
+                yield ({"url": response.url[:end] + rel_link})
+            else:
+                yield ({"url": rel_link})
+        driver = response.request.meta["driver"] 
+        next = driver.find_element(By.XPATH, "(//a[@class='usajobs-search-pagination__next-page'])[1]")
+        if next is None or not next.is_displayed():
+            return
+        while True:
+            try:
+                button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH,
+                "//a[@class='usajobs-search-pagination__next-page']")
+                )
+            )
+                driver.execute_script("window.scrollTo(100,document.body.scrollHeight/1.25);")
+                time.sleep(2)
+                button.click()
+                url = driver.current_url
+                yield (
+                self.makeRequest(
+                    url, 5, self.parsePage, next_selector, listing_selector
+                )
+            )
+            except Exception as e:
+                print(f"EXCEPTION: {e}")
+                #time.sleep(100)
+                ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+                continue
+            break
+
+    def makeRequest(self, url, tm, cb, next_selector, listing_selector):
+        request = SeleniumRequest(
+            url=url,
+            wait_time=tm,
+            callback=cb,
+            wait_until=EC.visibility_of_all_elements_located(listing_selector),
+        )
+        request.cb_kwargs["next_selector"] = next_selector
+        request.cb_kwargs["listing_selector"] = listing_selector
+        return request
