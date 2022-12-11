@@ -9,15 +9,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 import re
 
-"""
- urls = {
-            "usajobs": "https://www.usajobs.gov/Search/Results?j=2210&j=1550&j=1560&k=data&p=1",
-            #"progressivedatajobs": "https://www.progressivedatajobs.org/job-postings",
-            #"outerjoin":"https://outerjoin.us/?q=data",
-            #"weworkremotely": "https://weworkremotely.com/categories/remote-back-end-programming-jobs",
-            #"weworkremotely": "https://weworkremotely.com/categories/remote-full-stack-programming-jobs"
-        }
-"""
 url_max_pages = {
     "usajobs": [0, 15],
     "progressivedatajobs": [0, 11],
@@ -61,44 +52,24 @@ class ListingSpider(scrapy.Spider):
 
     def start_requests(self):
         urls = [
-            # "https://www.usajobs.gov/Search/Results?j=2210&j=1550&j=1560&k=data&p=1",
+            "https://www.usajobs.gov/Search/Results?j=2210&j=1550&j=1560&k=data&p=1",
             "https://www.progressivedatajobs.org/job-postings/job-postings/?wpv_view_count=627&wpv_paged=1",
-            # "https://outerjoin.us/?q=data",
-            # "https://weworkremotely.com/categories/remote-back-end-programming-jobs",
-            # "https://weworkremotely.com/categories/remote-full-stack-programming-jobs",
+            "https://outerjoin.us/?q=data",
+            "https://weworkremotely.com/categories/remote-back-end-programming-jobs",
+            "https://weworkremotely.com/categories/remote-full-stack-programming-jobs",
         ]
-        # Selectors for getting next page
-        next = [
-            (By.XPATH, "//a[@title='Go To Next Page']"),
-            ("rel_link", "/job-postings/?wpv_view_count=627&wpv_paged="),
-            (By.XPATH, "(//nav/a[@rel='next'])"),
-            ("na", "na"),
-            ("na", "na"),
-        ]
-        # Selectors for divs containing link to job post
-        listing_divs = [
-            (
-                By.XPATH,
-                "//div[@id='usajobs-search-results']/div[@class='usajobs-search-result--core']/a",
-            ),
-            (By.XPATH, "//div[@class='grid-job']/h2/a"),
-            (By.XPATH, "//div[@class='w-full ml-4']/a"),
-            (By.XPATH, "(//article/ul/li[@class='feature']/a)"),
-            (By.XPATH, "(//article/ul/li[@class='feature']/a)"),
-        ]
+
         requests = [
             self.makeRequest(
                 urls[i],
                 30,
                 self.parsePage,
-                # next[i],
                 url_selectors[get_key(urls[i])]["listings"],
             )
             for i in range(len(urls))
         ]
         return requests
 
-    # , next_selector, listing_selector
     def parsePage(self, response):
         # inspect_response(response, self)
         driver = response.request.meta["driver"]
