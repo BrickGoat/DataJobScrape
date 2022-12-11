@@ -20,8 +20,8 @@ import re
 """
 url_max_pages = {
     "usajobs": [0, 15],
-    "progressivedatajobs": [0, 15],
-    "outerjoin": [0, 15],
+    "progressivedatajobs": [0, 11],
+    "outerjoin": [0, 5],
     "weworkremotely": None,
     "weworkremotely": None,
 }
@@ -49,13 +49,20 @@ url_selectors = {
 }
 
 
+def get_key(url):
+    for key in url_max_pages.keys():
+        if re.search(key, url) is not None:
+            return key
+    raise Exception(url)
+
+
 class ListingSpider(scrapy.Spider):
     name = "listing"
 
     def start_requests(self):
         urls = [
-            "https://www.usajobs.gov/Search/Results?j=2210&j=1550&j=1560&k=data&p=1",
-            # "https://www.progressivedatajobs.org/job-postings",
+            # "https://www.usajobs.gov/Search/Results?j=2210&j=1550&j=1560&k=data&p=1",
+            "https://www.progressivedatajobs.org/job-postings/job-postings/?wpv_view_count=627&wpv_paged=1",
             # "https://outerjoin.us/?q=data",
             # "https://weworkremotely.com/categories/remote-back-end-programming-jobs",
             # "https://weworkremotely.com/categories/remote-full-stack-programming-jobs",
@@ -63,7 +70,7 @@ class ListingSpider(scrapy.Spider):
         # Selectors for getting next page
         next = [
             (By.XPATH, "//a[@title='Go To Next Page']"),
-            ("rel_link", "/job-postings/?wpv_view_count=627&wpv_paged=1"),
+            ("rel_link", "/job-postings/?wpv_view_count=627&wpv_paged="),
             (By.XPATH, "(//nav/a[@rel='next'])"),
             ("na", "na"),
             ("na", "na"),
@@ -82,10 +89,10 @@ class ListingSpider(scrapy.Spider):
         requests = [
             self.makeRequest(
                 urls[i],
-                10,
+                30,
                 self.parsePage,
                 # next[i],
-                listing_divs[i],
+                url_selectors[get_key(urls[i])]["listings"],
             )
             for i in range(len(urls))
         ]
@@ -96,13 +103,11 @@ class ListingSpider(scrapy.Spider):
         # inspect_response(response, self)
         driver = response.request.meta["driver"]
         url = driver.current_url
-        key = ""
-        for key_ in url_max_pages.keys():
-            if re.search(key_, url) is not None:
-                key = key_
-
+        key = get_key(url)
         next_selector = url_selectors[key]["next"]
         listing_selector = url_selectors[key]["listings"]
+
+        # Get container html elements holding job listing links
         containers = []
         if listing_selector[0] == By.CLASS_NAME:
             containers = response.xpath(f"//div[@class='{listing_selector[1]}']")
@@ -116,23 +121,6 @@ class ListingSpider(scrapy.Spider):
             else:
                 yield ({"url": rel_link})
 
-        if next_selector[0] == "rel_link":
-            #inspect_response(response, self)
-            url = (
-                driver.current_url
-                + next_selector[1][:-1]
-                + str(int(next_selector[1][-1]) + 1)
-            )
-            yield (
-                self.makeRequest(
-                    url,
-                    5,
-                    self.parsePage,
-                    listing_selector,
-                    wait_until=EC.presence_of_element_located(listing_selector),
-                )
-            )
-            return
         # Stop scraping after n pages
         if url_max_pages[key] is None:
             return
@@ -141,21 +129,38 @@ class ListingSpider(scrapy.Spider):
             return
         if next_selector[0] == None:
             return
-        try:
-            next = response.xpath(next_selector[1])
-        except Exception:
-            inspect_response(response, self)
-        #inspect_response(response, self)
+
+        # Handle rel links in "/pg=1" format
+        if next_selector[0] == "rel_link":
+            url = driver.current_url
+            end = url.rfind("=") + 1
+            index = url[end:]
+            if index.isnumeric():
+                index = str(int(index) + 1)
+            else:
+                raise Exception("Unhandled REl link")
+            url = driver.current_url[:end] + index
+
+            yield (
+                self.makeRequest(
+                    url,
+                    5,
+                    self.parsePage,
+                    listing_selector,
+                )
+            )
+            return
+        # Handle pages with next buttons
+        next = response.xpath(next_selector[1])
         if (
             len(next) == 0
             or next.xpath("@aria-hidden").get() == "true"
             or next.xpath("@display").get() == "none"
         ):
-            #inspect_response(response, self)
-            raise Exception(f"{next}\nNEXT IS NONE!!!!")
-            return
-        i = 0
-        while i < 5:
+            raise Exception(f"{next}\nNo more pages.")
+        # Attempt to get next page n times
+        n = 0
+        while n < 5:
             try:
                 button = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable(next_selector)
@@ -170,16 +175,15 @@ class ListingSpider(scrapy.Spider):
                 yield (
                     self.makeRequest(
                         url,
-                        5,
+                        30,
                         self.parsePage,
                         listing_selector,
                     )
                 )
             except Exception as e:
                 print(f"EXCEPTION: {e}")
-                # time.sleep(100)
                 ActionChains(driver).send_keys(Keys.ESCAPE).perform()
-                i+=1
+                n += 1
                 continue
             break
 
@@ -188,10 +192,8 @@ class ListingSpider(scrapy.Spider):
             url=url,
             wait_time=tm,
             callback=cb,
-            wait_until=EC.presence_of_element_located(listing_selector),
+            wait_until=EC.presence_of_element_located(
+                (By.XPATH, f"({listing_selector[1]})[1]")
+            ),
         )
-        # request.meta["next_selector"] = next_selector
-        # request.meta["listing_selector"] = listing_selector
-        # request.cb_kwargs["next_selector"] = next_selector
-        # request.cb_kwargs["listing_selector"] = listing_selector
         return request
