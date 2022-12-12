@@ -11,27 +11,27 @@ BOT_NAME = 'jobSpider'
 
 SPIDER_MODULES = ['jobSpider.spiders']
 NEWSPIDER_MODULE = 'jobSpider.spiders'
-LOG_LEVEL = 'DEBUG'
-
+LOG_LEVEL = 'INFO'
+#LOG_STDOUT = True
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'jobSpider (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # Chrome driver config
 from shutil import which
 
 SELENIUM_DRIVER_NAME = 'chrome'
 SELENIUM_DRIVER_EXECUTABLE_PATH = which('chromedriver')
-SELENIUM_DRIVER_ARGUMENTS=['--headless']  
+SELENIUM_DRIVER_ARGUMENTS=[]  
   
 DOWNLOADER_MIDDLEWARES = {
      'scrapy_selenium.SeleniumMiddleware': 800
      }
      
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-#CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 1
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -73,9 +73,9 @@ DOWNLOADER_MIDDLEWARES = {
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    'jobSpider.pipelines.JobspiderPipeline': 300,
-#}
+ITEM_PIPELINES = {
+    'jobSpider.pipelines.JobspiderPipeline': 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
