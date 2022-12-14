@@ -11,6 +11,8 @@ import re
 
 # Remove numbers
 def parseCat(x):
+    if checkNone(x):
+        return None
     x = re.sub("\d", "", x)
     x = x.strip()
     return x
@@ -46,7 +48,6 @@ def parseRequirements(x):
         "JavaScript",
         "Machine Learning",
         "Rstudio",
-        "C\+\+",
         "Scala",
         "SQL",
         "Git",
@@ -61,21 +62,24 @@ def parseRequirements(x):
             terms = terms + f"{term}/"
     return terms[:-1]
 
-
+# TODO - If parsing description, also check for $
+# TODO - Add zeros if digits are followed by K not only if it has three digits
 def parseSalary(x):
+    if checkNone(x):
+        return None
     x = x.replace(",", "")
     matches = re.findall("\d+\.?\d+", x)
     min = float("inf")
     for match in matches:
-        if len(match) == 3:
+        if len(match) == 3: # 110K
             match = match + "000"
         if match.isnumeric():
             salary = int(match)
-            if salary > 0 and salary < min:
+            if salary > 3000 and salary < min: # avoid unrelated digits in description
                 min = salary
     if min != float("inf"):
         return min
-    return 0
+    return float('nan')
 
 
 def parseSchedule(x):
@@ -109,14 +113,23 @@ def parseType(x):
         return "Contract"
     return None
 
+def checkNone(val):
+    return val is None
 
 class JobspiderPipeline:
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
+        keys = adapter.field_names()
+        field_to_parse = {key:None for key in keys}
+        for key in keys:
+            if not checkNone(adapter[key]):
+                field_to_parse[key] = adapter[key]
+                continue
+            field_to_parse[key] = adapter["Description"]
         adapter["Category"] = parseCat(adapter["Category"])
-        adapter["Type"] = parseType(adapter["Type"])
-        adapter["Schedule"] = parseSchedule(adapter["Schedule"])
-        adapter["Location"] = parseLocation(adapter["Location"])
-        adapter["Salary"] = parseSalary(adapter["Salary"])
-        adapter["Requirements"] = parseRequirements(adapter["Requirements"])
+        adapter["Type"] = parseType(field_to_parse["Type"])
+        adapter["Schedule"] = parseSchedule(field_to_parse["Schedule"])
+        adapter["Location"] = parseLocation(field_to_parse["Location"])
+        adapter["Salary"] = parseSalary(field_to_parse["Salary"])
+        adapter["Requirements"] = parseRequirements(field_to_parse["Requirements"])
         return item
