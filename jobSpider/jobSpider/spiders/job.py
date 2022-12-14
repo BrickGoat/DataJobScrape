@@ -29,7 +29,7 @@ class JobsSpider(scrapy.Spider):
 
     def start_requests(self):
         urls = pd.read_json(
-            "/home/brick/Documents/jobsScrape/DataJobScrape/jobSpider/urls_all.jl",
+            "/home/brick/Documents/jobsScrape/DataJobScrape/jobSpider/urls.jl",
             lines=True,
         )
         urls = urls.iloc[0:, 0]
@@ -49,9 +49,9 @@ class JobsSpider(scrapy.Spider):
                 "//h3[contains(text(), 'Job Role')]/following-sibling::p",
                 "(//div[@class='uabb-subheading uabb-text-editor']/p)[1]",
                 None,
-                "//h3[contains(text(), 'Salary Range')]/preceding-sibling:p",
-                "//h3[contains(text(), 'Salary Range')]/following-sibling:p",
-                "//div[@class='fl-rich-text']",
+                "//h3[contains(text(), 'Location')]/following-sibling::p",
+                "//h3[contains(text(), 'Salary Range')]/following-sibling::p",
+                "(//h2[contains(text(), 'Position Summary')])[1]/parent::div",
                 "//div[@class='fl-rich-text']/ul/li",
             ),
             "outerjoin": makeSelector(
@@ -61,13 +61,13 @@ class JobsSpider(scrapy.Spider):
                 None,
                 None,
                 None,
-                "(//div[@class='job-description'])[1]/article",
+                "(//div[@class='job-description'])[1]//p",
             ),
             "weworkremotely": makeSelector(
                 "(//div[@class='listing-header-container'])[1]/h1",
-                "(//div[@class='listing-header-container'])[1]/br/following-sibling:a",
+                "(//div[@class='listing-header-container'])[1]/br/following-sibling::a",
                 None,
-                "(//div[@class='listing-header-container'])[1]/br/following-sibling:a",
+                "(//div[@class='listing-header-container'])[1]/br/following-sibling::a",
                 "((//div[@class='company-card'])[1]/h3)[1]",
                 None,
                 "//div[@id='job-listing-show-container']",
@@ -93,11 +93,15 @@ class JobsSpider(scrapy.Spider):
         item = JobspiderItem()
         item["Url"] = url
         for selector in selectors.keys():
+            if selectors[selector] is None:
+                item[selector] = None
+                continue
             elements = response.xpath(f"({selectors[selector]})")
             for ele in elements:
                 data = ele.xpath(".//text()").extract()
+                #TODO - Use different method to not parse duplicates.
                 if len(data) != 0:
-                    data = "".join(data).strip()
+                    data = " ".join(data).strip()
                     break
 
             if len(data) > 0:
@@ -108,6 +112,7 @@ class JobsSpider(scrapy.Spider):
 
 
     def makeRequest(self, url, tm, cb, selectors):
+        print()
         request = SeleniumRequest(
             url=url,
             wait_time=tm,
