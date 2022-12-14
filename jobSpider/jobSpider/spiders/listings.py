@@ -10,9 +10,9 @@ from selenium.webdriver.common.keys import Keys
 import re
 
 url_max_pages = {
-    "usajobs": [0, 15],
-    "progressivedatajobs": [0, 11],
-    "outerjoin": [0, 5],
+    "usajobs": [0, 20],
+    "progressivedatajobs": [0, 20],
+    "outerjoin": [0, 20],
     "weworkremotely": None,
     "weworkremotely": None,
 }
@@ -53,31 +53,32 @@ class ListingSpider(scrapy.Spider):
     def start_requests(self):
         urls = [
             "https://www.usajobs.gov/Search/Results?j=2210&j=1550&j=1560&k=data&p=1",
-            "https://www.progressivedatajobs.org/job-postings/job-postings/?wpv_view_count=627&wpv_paged=1",
-            "https://outerjoin.us/?q=data",
-            "https://weworkremotely.com/categories/remote-back-end-programming-jobs",
-            "https://weworkremotely.com/categories/remote-full-stack-programming-jobs",
+            #"https://www.progressivedatajobs.org/job-postings/job-postings/?wpv_view_count=627&wpv_paged=1",
+            #"https://outerjoin.us/?q=data",
+            #"https://weworkremotely.com/categories/remote-back-end-programming-jobs",
+            #"https://weworkremotely.com/categories/remote-full-stack-programming-jobs",
         ]
 
-        requests = [
-            self.makeRequest(
-                urls[i],
+        for url in urls:
+            request = self.makeRequest(
+                url,
                 30,
                 self.parsePage,
-                url_selectors[get_key(urls[i])]["listings"],
+                url_selectors[get_key(url)]["listings"],
             )
-            for i in range(len(urls))
-        ]
-        return requests
+            yield(request)
+
 
     def parsePage(self, response):
-        # inspect_response(response, self)
+        
+        #inspect_response(response, self)
         driver = response.request.meta["driver"]
         url = driver.current_url
         key = get_key(url)
         next_selector = url_selectors[key]["next"]
         listing_selector = url_selectors[key]["listings"]
-
+        #raise Exception("start")
+        #inspect_response(response, self)
         # Get container html elements holding job listing links
         containers = []
         if listing_selector[0] == By.CLASS_NAME:
@@ -91,7 +92,7 @@ class ListingSpider(scrapy.Spider):
                 yield ({"url": response.url[:end] + rel_link})
             else:
                 yield ({"url": rel_link})
-
+        #inspect_response(response, self)
         # Stop scraping after n pages
         if url_max_pages[key] is None:
             return
@@ -100,7 +101,7 @@ class ListingSpider(scrapy.Spider):
             return
         if next_selector[0] == None:
             return
-
+        #inspect_response(response, self)
         # Handle rel links in "/pg=1" format
         if next_selector[0] == "rel_link":
             url = driver.current_url
@@ -128,6 +129,7 @@ class ListingSpider(scrapy.Spider):
             or next.xpath("@aria-hidden").get() == "true"
             or next.xpath("@display").get() == "none"
         ):
+            inspect_response(response, self)
             raise Exception(f"{next}\nNo more pages.")
         # Attempt to get next page n times
         n = 0
