@@ -7,9 +7,7 @@
 - Location
 - Description
 - Salary
-- Responsibilities / Duties / Tasks / What you'll do
 - Required Skills / Requirements / Qualifications /  Who We Need
-- Experience 
 
 ## Potential sites to scrape:
 ### JS
@@ -26,6 +24,7 @@
 5. https://weworkremotely.com
 
 ## Info to plot
-- Distribution of salaries within a location, job & employment type with 50+ jobs
+- Average salary within a location with 25+ jobs, full-time/part-time, permanant/temp
+- Counts of programming languages 
 - Plot years of experience by salary
 - Topic modeling grouped by job types for Description, Responsibilites, & skills
