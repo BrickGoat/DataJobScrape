@@ -1,5 +1,13 @@
 # DataJobScrape
 
+## Instructions
+1. Verify chromedriver is the same version as your browser.
+1B. Optional: Set max number of pages for each job site from url_max_pages in DataJobScrape/jobSpider/listings.py
+2. From DataJobScrape/jobSpider Run scrapy crawl listing -o urls.jl
+2B. listing script only works on one start url at a time, so comment out the current url and uncomment the next to scrape other job sites.
+3. Once url.jl is created Run scrapy crawl job -o job.csv
+3A. Optional: Run python3 ./plotting/plot.py to generate simple plots.
+
 ## Scraped Job Information
 - Job Title
 - Job Category
@@ -8,6 +16,17 @@
 - Description
 - Salary
 - Required Skills / Requirements / Qualifications /  Who We Need
+
+## Scraped Job sites
+1. https://www.usajobs.gov
+2. https://www.progressivedatajobs.org/job-postings/
+3. https://outerjoin.us
+4. https://weworkremotely.com
+
+## Plots
+- Average Salary by Location, Schedule(permanent, temporary, contract) ,and type(full-time/part-time) 
+- Counts of key terms in Requirements
+  - Each term only counted once per job
 
 ## Potential sites to scrape:
 ### JS
